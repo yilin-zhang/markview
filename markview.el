@@ -945,10 +945,9 @@ Other URLs are opened with `browse-url'."
         (markview-preview-mode -1))
       (kill-buffer preview))))
 
-(defun markview-open (&optional full)
-  "Open a synchronized read-only preview for the current Markdown buffer.
-With prefix argument FULL, display the preview as the only window."
-  (interactive "P")
+(defun markview-open ()
+  "Open a synchronized read-only preview for the current Markdown buffer."
+  (interactive)
   (unless (treesit-language-available-p 'markdown)
     (user-error
      "Tree-sitter `markdown' grammar not found; install with M-x treesit-install-language-grammar"))
@@ -956,24 +955,16 @@ With prefix argument FULL, display the preview as the only window."
          (existing markview-preview-buffer))
     (if (buffer-live-p existing)
         (progn
-          (if full
-              (progn (switch-to-buffer existing)
-                     (delete-other-windows))
-            (display-buffer existing))
+          (display-buffer existing)
           (markview--sync-from-buffer source)
           existing)
       (let* ((preview (clone-indirect-buffer
                        (markview--preview-buffer-name source) nil t))
-             (window  (if full
-                         (progn
-                           (switch-to-buffer preview)
-                           (delete-other-windows)
-                           (selected-window))
-                       (display-buffer-in-side-window
-                        preview
-                        `((side . right)
-                          (slot . 0)
-                          (window-width . ,markview-window-size))))))
+             (window  (display-buffer
+                       preview
+                       `((display-buffer-in-direction)
+                         (direction . right)
+                         (window-width . ,markview-window-size)))))
         (setq markview-preview-buffer preview)
         (with-current-buffer preview
           (setq markview-source-buffer source)
@@ -984,13 +975,11 @@ With prefix argument FULL, display the preview as the only window."
           (add-hook 'post-command-hook #'markview--preview-post-command nil t)
           (add-hook 'kill-buffer-hook #'markview--cleanup-preview nil t)
           (markview-preview-mode 1))
-        (unless full
-          (with-current-buffer source
-            (add-hook 'post-command-hook #'markview--source-post-command nil t)
-            (add-hook 'after-change-functions #'markview--source-after-change nil t)
-            (add-hook 'kill-buffer-hook #'markview-close nil t))
-          (set-window-dedicated-p window t)
-          (markview--sync-from-buffer source))
+        (with-current-buffer source
+          (add-hook 'post-command-hook #'markview--source-post-command nil t)
+          (add-hook 'after-change-functions #'markview--source-after-change nil t)
+          (add-hook 'kill-buffer-hook #'markview-close nil t))
+        (markview--sync-from-buffer source)
         preview))))
 
 (defun markview-toggle ()
