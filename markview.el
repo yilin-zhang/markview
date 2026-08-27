@@ -462,7 +462,7 @@ Used for display-string contexts (headings, table cells, quote bodies)."
 
 (defun markview--render-fenced-code-block (node)
   "Render a fenced code block NODE with box-drawing borders."
-  (let* ((lang-node (when-let ((info (markview--find-child node "info_string")))
+  (let* ((lang-node (when-let* ((info (markview--find-child node "info_string")))
                       (markview--find-child info "language")))
          (lang (if lang-node (string-trim (treesit-node-text lang-node t)) ""))
          (lines (markview--collect-node-lines node)))
